@@ -1,0 +1,154 @@
+---
+title: "Procesamiento de datos - ejemplo"
+---
+
+# Descripción general
+
+Este código procesa los datos originales y genera un archivo con la información necesaria para realizar los análisis.
+
+# Librerías
+ 
+```{r}
+pacman::p_load(stargazer, dplyr, ggplot2, sjmisc, car, sjlabelled, haven,
+               sjPlot, summarytools, kableExtra, corrplot, coefplot, lsr)
+
+```
+
+# Cargar base de datos ICCS 2016
+
+```{r}
+#Base de datos latinoamérica
+Chile.latinoamerica <- read_sav("../input/data/original/ISLCHLC3.sav")
+
+#Base international student
+Chile.Estudiantes <- read_sav("../input/data/original/ISGCHLC3.sav")
+
+#Base Student civic knowledge
+Chile.civicknowledge<-read_sav("../input/data/original/ISACHLC3.sav")
+
+#Base profesores
+Chile.profesores<-read_sav("../input/data/original/ITGCHLC3.sav")
+
+#Base escuelas
+Chile.escuelas <- read_sav("../input/data/original/ICGCHLC3.sav")
+```
+
+# Seleccionar variables de interés
+
+```{r}
+latin <- Chile.latinoamerica %>% select(Estudiante=IDSTUD,
+                                  Escuela=IDSCHOOL,
+                                  Aula=IDCLASS,
+                                  Piel=LS3G06A,
+                                  Clase=LS3G06B,
+                                  Religion=LS3G06C,
+                                  Region=LS3G06D,
+                                  Fisica=LS3G06E,
+                                  Mental=LS3G06F,
+                                  Pais=LS3G06G,
+                                  indigena=LS3G06H
+                                  )
+
+estudiantes <- Chile.Estudiantes %>% select(Estudiante=IDSTUD,
+                                  Escuela=IDSCHOOL,
+                                  Aula=IDCLASS,
+                                  Debate=IS3G16A,
+                                  Votar=IS3G16B,
+                                  Decisiones=IS3G16C,
+                                  Asamblea=IS3G16D,
+                                  Candidato=IS3G16E,
+                                  Medioambiente=IS3G16F,
+                                  Voluntario=IS3G16G,
+                                  Prop.decision=IS3G17A,
+                                  Expres.opinion=IS3G17B,
+                                  Discus.politic=IS3G17C,
+                                  Opinion.mayoria=IS3G17D,
+                                  Discus.difop=IS3G17E,
+                                  Aspectos=IS3G17F,
+                                  Como.votar=IS3G18A,
+                                  Como.leyes=IS3G18B,
+                                  Como.medioambiente=IS3G18C,
+                                  Como.problemas=IS3G18D,
+                                  Como.derechos=IS3G18E,
+                                  Como.paises=IS3G18F,
+                                  Como.economia=IS3G18G)
+
+```
+
+# Cambiar etiquetas
+
+```{r}
+latin$Piel <- set_label(x = latin$Piel,label = "Aceptar persona diferente color de piel")
+```
+
+# Mezclar bases
+
+```{r}
+base <- merge(estudiantes, latin, by="Estudiante")
+```
+# Recodificar variables
+
+```{r}
+# Participacion
+base$Participacion<-car::Recode(base$Participacion, "1=3;2=2;3=1")
+base$Votar<-car::Recode(base$Votar, "1=3;2=2;3=1")
+base$Decisiones<-car::Recode(base$Decisiones, "1=3;2=2;3=1")
+base$Asamblea<-car::Recode(base$Asamblea, "1=3;2=2;3=1")
+base$Candidato<-car::Recode(base$Candidato, "1=3;2=2;3=1")
+base$Medioambiente<-car::Recode(base$Medioambiente, "1=3;2=2;3=1")
+base$Voluntario<-car::Recode(base$Voluntario, "1=3;2=2;3=1")
+
+#Aprendizaje
+base$Como.votar<-car::Recode(base$Como.votar, "1=4;2=3;3=2; 4=1")
+base$Como.leyes<-car::Recode(base$Como.leyes, "1=4;2=3;3=2; 4=1")
+base$Como.medioambiente<-car::Recode(base$Como.medioambiente, "1=4;2=3;3=2; 4=1")
+base$Como.problemas<-car::Recode(base$Como.problemas, "1=4;2=3;3=2; 4=1")
+base$Como.derechos<-car::Recode(base$Como.derechos, "1=4;2=3;3=2; 4=1")
+base$Como.paises<-car::Recode(base$Como.paises, "1=4;2=3;3=2; 4=1")
+base$Como.economia<-car::Recode(base$Como.economia, "1=4;2=3;3=2; 4=1")
+```
+
+
+
+# Crear índices
+
+```{r}
+#Indice aceptar la diferencia
+base <- base %>% mutate(Aceptar.diferencia=rowSums(select(., Piel, Clase, Religion, Region, Fisica, Mental, Pais, indigena)))
+#Recodificar aceptar la diferencia
+base$Aceptar.diferencia<-car::recode(base$Aceptar.diferencia, "8:15=0; 16=1")
+base$Aceptar.diferencia<-factor(base$Aceptar.diferencia, labels=c("Rechaza uno o más grupos", "Acepta todos los grupos"))
+
+#Indice Participacion
+base <- base %>% mutate(Participacion=rowSums(select(., Debate, Votar, Decisiones, Asamblea, Candidato, Medioambiente, Voluntario)))
+
+#índice Percepción aula abierta
+base <- base %>% mutate(Aula.abierta=rowSums(select(., Prop.decision, Expres.opinion, Discus.politic, Opinion.mayoria, Discus.difop, Aspectos)))
+
+#Indice oportunidades de aprendizaje
+base <- base %>% mutate(Aprendizaje=rowSums(select(., Como.votar, Como.leyes, Como.medioambiente, Como.problemas, Como.derechos, Como.paises, Como.economia)))
+```
+
+# Crear base solo con índices
+
+```{r}
+base_indices <- base %>% select(Aceptar.diferencia,
+                                Participacion,
+                                Aula.abierta,
+                                Aprendizaje)
+```
+
+# Guardar bases de datos procesadas
+
+```{r}
+write.csv(base, file="../input/data/proc/ICCS_proc.csv", row.names = F)
+```
+
+# Guardar base de índices
+
+```{r}
+write.csv(base_indices, file="../input/data/proc/ICCS_indices.csv", row.names=F)
+```
+
+
+

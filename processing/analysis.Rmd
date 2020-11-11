@@ -1,0 +1,40 @@
+# Librerías
+
+```{r}
+pacman::p_load(stargazer, dplyr, ggplot2, sjmisc, car, sjlabelled, haven,
+               sjPlot, summarytools, kableExtra, corrplot, coefplot, lsr)
+
+```
+
+# Leer base de datos procesada
+
+```{r}
+ICCS_proc <- read.csv("../input/data/proc/ICCS_proc.csv")
+base_indices <- read.csv("../input/data/proc/ICCS_indices.csv")
+```
+
+# Descriptivos
+
+```{r}
+view(dfSummary(base_indices, headings=FALSE))
+```
+
+# regresiones logisticas
+
+```{r}
+reg0 <- glm(Aceptar.diferencia~1, data = base_indices, family="binomial")
+
+reg1 <- glm(Aceptar.diferencia~Participacion, data = base_indices, family = "binomial")
+
+reg2 <- glm(Aceptar.diferencia~Aula.abierta, data = base_indices, family = "binomial")
+
+reg3 <- glm(Aceptar.diferencia~Aprendizaje, data = base_indices, family = "binomial")
+
+reg4 <- glm(Aceptar.diferencia~Participacion+Aula.abierta+Aprendizaje, data=base_indices, family="binomial")
+
+
+stargazer(reg0, reg1, reg2, reg3, reg4, type = "text")
+```
+
+
+
