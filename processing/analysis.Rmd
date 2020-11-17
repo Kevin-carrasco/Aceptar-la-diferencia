@@ -9,7 +9,7 @@ pacman::p_load(stargazer, dplyr, ggplot2, sjmisc, car, sjlabelled, haven,
 # Leer base de datos procesada
 
 ```{r}
-ICCS_proc <- read.csv("../input/data/proc/ICCS_proc.csv")
+base.logit <- read.csv("../input/data/proc/ICCS_logit.csv")
 base_indices <- read.csv("../input/data/proc/ICCS_indices.csv")
 ```
 
@@ -19,22 +19,66 @@ base_indices <- read.csv("../input/data/proc/ICCS_indices.csv")
 view(dfSummary(base_indices, headings=FALSE))
 ```
 
-# regresiones logisticas
+# Descriptivos logistica
 
 ```{r}
-reg0 <- glm(Aceptar.diferencia~1, data = base_indices, family="binomial")
+view(dfSummary(base.logit, headings=FALSE))
+```
 
-reg1 <- glm(Aceptar.diferencia~Participacion, data = base_indices, family = "binomial")
+# Regresiones
+```{r}
+reg0 <- lm(Aceptar.diferencia~1, data = base_indices)
 
-reg2 <- glm(Aceptar.diferencia~Aula.abierta, data = base_indices, family = "binomial")
+reg1 <- lm(Aceptar.diferencia~Participacion, data = base_indices)
 
-reg3 <- glm(Aceptar.diferencia~Aprendizaje, data = base_indices, family = "binomial")
+reg2 <- lm(Aceptar.diferencia~Aula.abierta, data = base_indices)
 
-reg4 <- glm(Aceptar.diferencia~Participacion+Aula.abierta+Aprendizaje, data=base_indices, family="binomial")
+reg3 <- lm(Aceptar.diferencia~Aprendizaje, data = base_indices)
+
+reg4 <- lm(Aceptar.diferencia~Participacion+Aula.abierta+Aprendizaje + Genero_Mujer + Exp.educacion_Secundaria+Exp.educacion_Terciaria.corto + Exp.educacion_Terciaria.posgrado, data=base_indices)
 
 
 stargazer(reg0, reg1, reg2, reg3, reg4, type = "text")
 ```
+# Regresiones modelo de recursos
+```{r}
+rec0 <- lm(Aceptar.diferencia~1, data = base_indices)
+rec1 <- lm(Aceptar.diferencia~Genero_Mujer, data = base_indices)
+rec2 <- lm(Aceptar.diferencia~Exp.educacion_Secundaria+Exp.educacion_Terciaria.corto + Exp.educacion_Terciaria.posgrado, data = base_indices)
+rec3 <- lm(Aceptar.diferencia~Libros, data = base_indices)
+rec4 <- lm(Aceptar.diferencia~Genero_Mujer + Exp.educacion_Secundaria+Exp.educacion_Terciaria.corto + Exp.educacion_Terciaria.posgrado + Libros, data = base_indices)
+
+stargazer(rec0, rec1, rec2, rec3, rec4, type = "text")
+```
 
 
+
+# regresiones logisticas
+
+```{r}
+log0 <- glm(Aceptar.diferencia~1, data = base.logit, family="binomial")
+
+log1 <- glm(Aceptar.diferencia~Participacion, data = base.logit, family = "binomial")
+
+log2 <- glm(Aceptar.diferencia~Aula.abierta, data = base.logit, family = "binomial")
+
+log3 <- glm(Aceptar.diferencia~Aprendizaje, data = base.logit, family = "binomial")
+
+log4 <- glm(Aceptar.diferencia~Participacion+Aula.abierta+Aprendizaje + Genero_Mujer + Exp.educacion_Secundaria+Exp.educacion_Terciaria.corto + Exp.educacion_Terciaria.posgrado, data=base.logit, family="binomial")
+
+
+stargazer(log0, log1, log2, log3, log4, type = "text")
+```
+
+# Logística modelo de recursos
+
+```{r}
+reclog0 <- glm(Aceptar.diferencia~1, data = base.logit, family="binomial")
+reclog1 <- glm(Aceptar.diferencia~Genero_Mujer, data = base.logit, family="binomial")
+reclog2 <- glm(Aceptar.diferencia~Exp.educacion_Secundaria+Exp.educacion_Terciaria.corto + Exp.educacion_Terciaria.posgrado, data = base.logit, family="binomial")
+reclog3 <- glm(Aceptar.diferencia~Libros, data = base.logit, family="binomial")
+reclog4 <- glm(Aceptar.diferencia~Genero_Mujer + Exp.educacion_Secundaria+Exp.educacion_Terciaria.corto + Exp.educacion_Terciaria.posgrado + Libros, data = base.logit, family="binomial")
+
+stargazer(reclog0, reclog1, reclog2, reclog3, reclog4, type = "text")
+```
 

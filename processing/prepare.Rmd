@@ -10,7 +10,7 @@ Este código procesa los datos originales y genera un archivo con la informació
  
 ```{r}
 pacman::p_load(stargazer, dplyr, ggplot2, sjmisc, car, sjlabelled, haven,
-               sjPlot, summarytools, kableExtra, corrplot, coefplot, lsr)
+               sjPlot, summarytools, kableExtra, corrplot, coefplot, lsr, fastDummies)
 
 ```
 
@@ -46,12 +46,33 @@ latin <- Chile.latinoamerica %>% select(Estudiante=IDSTUD,
                                   Fisica=LS3G06E,
                                   Mental=LS3G06F,
                                   Pais=LS3G06G,
-                                  indigena=LS3G06H
+                                  indigena=LS3G06H,
+                                  Homo.matrimonio=LS3G08A,
+                                  Homo.adoptar=LS3G08B,
+                                  Homo.derechos=LS3G08C,
+                                  Homo.escuelas=LS3G08D,
+                                  Homo.politica=LS3G08E,
+                                  Dis.mujer=LS3G09A,
+                                  Dis.joven=LS3G09B,
+                                  Dis.homosexual=LS3G09C,
+                                  Dis.cesante=LS3G09D,
+                                  Dis.discapacitado=LS3G09E,
+                                  Dis.african=LS3G09F,
+                                  Dis.religion=LS3G09G,
+                                  Dis.pobre=LS3G09H,
+                                  Dis.viejo=LS3G09I,
+                                  Dis.inmigrante=LS3G09J,
+                                  Dis.etnia=LS3G09K
                                   )
 
 estudiantes <- Chile.Estudiantes %>% select(Estudiante=IDSTUD,
                                   Escuela=IDSCHOOL,
                                   Aula=IDCLASS,
+                                  Genero=S_GENDER,
+                                  Exp.educacion=IS3G03,
+                                  Educ.madre=IS3G07,
+                                  Educ.padre=IS3G09,
+                                  Libros=IS3G11,
                                   Debate=IS3G16A,
                                   Votar=IS3G16B,
                                   Decisiones=IS3G16C,
@@ -73,6 +94,19 @@ estudiantes <- Chile.Estudiantes %>% select(Estudiante=IDSTUD,
                                   Como.paises=IS3G18F,
                                   Como.economia=IS3G18G)
 
+profesores <- Chile.profesores %>% select(Escuela=IDSCHOOL,
+                                  Teach.ddhh=IT3G18A,
+                                  Teach.votar=IT3G18B,
+                                  Teach.global=IT3G18C,
+                                  Teach.ambiente=IT3G18D,
+                                  Teach.migracion=IT3G18E,
+                                  Teach.igualgenero=IT3G18F,
+                                  Teach.ciudadania=IT3G18G,
+                                  Teach.constit=IT3G18H,
+                                  Teach.internet=IT3G18I,
+                                  Teach.pensamiento=IT3G18J,
+                                  Teach.conflicto=IT3G18K)
+
 ```
 
 # Cambiar etiquetas
@@ -84,13 +118,18 @@ latin$Piel <- set_label(x = latin$Piel,label = "Aceptar persona diferente color 
 # Mezclar bases
 
 ```{r}
-base <- merge(estudiantes, latin, by="Estudiante")
+
+base <- left_join(x = estudiantes, y = latin,by ="Estudiante")
+
 ```
 # Recodificar variables
 
 ```{r}
+# Género
+base$Genero<-factor(base$Genero, labels=c("Hombre", "Mujer"))
+base <- dummy_cols(base,select_columns = "Genero")
 # Participacion
-base$Participacion<-car::Recode(base$Participacion, "1=3;2=2;3=1")
+base$Debate<-car::Recode(base$Debate, "1=3;2=2;3=1")
 base$Votar<-car::Recode(base$Votar, "1=3;2=2;3=1")
 base$Decisiones<-car::Recode(base$Decisiones, "1=3;2=2;3=1")
 base$Asamblea<-car::Recode(base$Asamblea, "1=3;2=2;3=1")
@@ -106,18 +145,26 @@ base$Como.problemas<-car::Recode(base$Como.problemas, "1=4;2=3;3=2; 4=1")
 base$Como.derechos<-car::Recode(base$Como.derechos, "1=4;2=3;3=2; 4=1")
 base$Como.paises<-car::Recode(base$Como.paises, "1=4;2=3;3=2; 4=1")
 base$Como.economia<-car::Recode(base$Como.economia, "1=4;2=3;3=2; 4=1")
+
+#Expectativas de educacion
+base$Exp.educacion<-car::Recode(base$Exp.educacion, "1=4;2=3;3=2; 4=1")
+base$Exp.educacion<-factor(base$Exp.educacion, labels=c("Primaria", "Secundaria", "Terciaria.corto", "Terciaria.posgrado"))
+base <- dummy_cols(base,select_columns = "Exp.educacion")
+#Educacion madre
+base$Educ.madre<-car::Recode(base$Educ.madre, "1=5; 2=4; 3=3; 4=2; 5=1")
+base$Educ.madre<-factor(base$Educ.madre, labels=c("Primaria.incompleta", "Primaria", "Secundaria", "Terciaria.corto", "Terciaria.posgrado"))
+base <- dummy_cols(base,select_columns = "Educ.madre")
+#Educacion padre
+base$Educ.padre<-car::Recode(base$Educ.padre, "1=5; 2=4; 3=3; 4=2; 5=1")
+base$Educ.padre<-factor(base$Educ.padre, labels=c("Primaria.incompleta", "Primaria", "Secundaria", "Terciaria.corto", "Terciaria.posgrado"))
+base <- dummy_cols(base,select_columns = "Educ.padre")
 ```
-
-
 
 # Crear índices
 
 ```{r}
 #Indice aceptar la diferencia
 base <- base %>% mutate(Aceptar.diferencia=rowSums(select(., Piel, Clase, Religion, Region, Fisica, Mental, Pais, indigena)))
-#Recodificar aceptar la diferencia
-base$Aceptar.diferencia<-car::recode(base$Aceptar.diferencia, "8:15=0; 16=1")
-base$Aceptar.diferencia<-factor(base$Aceptar.diferencia, labels=c("Rechaza uno o más grupos", "Acepta todos los grupos"))
 
 #Indice Participacion
 base <- base %>% mutate(Participacion=rowSums(select(., Debate, Votar, Decisiones, Asamblea, Candidato, Medioambiente, Voluntario)))
@@ -127,12 +174,34 @@ base <- base %>% mutate(Aula.abierta=rowSums(select(., Prop.decision, Expres.opi
 
 #Indice oportunidades de aprendizaje
 base <- base %>% mutate(Aprendizaje=rowSums(select(., Como.votar, Como.leyes, Como.medioambiente, Como.problemas, Como.derechos, Como.paises, Como.economia)))
+
+#Recodificar aceptar la diferencia a dummy en nueva base
+base.logit <- base
+base.logit$Aceptar.diferencia<-car::recode(base.logit$Aceptar.diferencia, "8:15=0; 16=1")
+base.logit$Aceptar.diferencia<-factor(base.logit$Aceptar.diferencia, labels=c("Rechaza uno o más grupos", "Acepta todos los grupos"))
 ```
 
 # Crear base solo con índices
 
 ```{r}
-base_indices <- base %>% select(Aceptar.diferencia,
+base_indices <- base %>% select(Genero_Mujer,
+                                Exp.educacion_Primaria,
+                                Exp.educacion_Secundaria,
+                                Exp.educacion_Terciaria.corto,
+                                Exp.educacion_Terciaria.posgrado,
+                                Libros,
+                                Aceptar.diferencia,
+                                Participacion,
+                                Aula.abierta,
+                                Aprendizaje)
+
+base_logit <- base.logit %>% select(Genero_Mujer,
+                                Exp.educacion_Primaria,
+                                Exp.educacion_Secundaria,
+                                Exp.educacion_Terciaria.corto,
+                                Exp.educacion_Terciaria.posgrado,
+                                Libros,
+                                Aceptar.diferencia,
                                 Participacion,
                                 Aula.abierta,
                                 Aprendizaje)
@@ -141,7 +210,7 @@ base_indices <- base %>% select(Aceptar.diferencia,
 # Guardar bases de datos procesadas
 
 ```{r}
-write.csv(base, file="../input/data/proc/ICCS_proc.csv", row.names = F)
+write.csv(base_logit, file="../input/data/proc/ICCS_logit.csv", row.names = F)
 ```
 
 # Guardar base de índices
